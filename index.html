@@ -14,7 +14,6 @@
             padding: 10px;
             overflow-x: hidden;
         }
-        
         .header {
             display: flex;
             justify-content: space-between;
@@ -24,135 +23,49 @@
             border-radius: 8px;
             margin-bottom: 10px;
         }
-        
-        .score-board {
-            font-size: 14px;
-            color: #f4d35e;
-            font-weight: bold;
-        }
-        
+        .score-board { font-size: 14px; color: #f4d35e; font-weight: bold; }
         .voice-btn {
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            background: #27ae60; color: white; border: none; padding: 6px 12px;
+            border-radius: 15px; font-size: 12px; font-weight: bold; cursor: pointer;
         }
-
         .section-title { font-size: 13px; margin: 8px 0 4px 0; color: #f4d35e; font-weight: bold; }
-        
         .table, .hand {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            min-height: 130px;
-            margin-bottom: 10px;
-            position: relative;
+            display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+            min-height: 130px; margin-bottom: 10px; position: relative;
         }
-        
         .card {
-            background: #fffdf5;
-            width: 78px;
-            height: 125px;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-            border: 2px solid #222;
-            position: relative;
-            animation: dealCard 0.5s ease-out forwards;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
+            background: #fffdf5; width: 78px; height: 125px; border-radius: 6px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            align-items: center; padding: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            border: 2px solid #222; cursor: pointer; user-select: none;
         }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.6);
-        }
-
-        @keyframes dealCard {
-            0% {
-                opacity: 0;
-                transform: translateY(-80px) scale(0.5) rotate(-10deg);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1) rotate(0deg);
-            }
-        }
-
-        .card-corner {
-            font-size: 11px;
-            font-weight: bold;
-            color: #111;
-            width: 100%;
-            text-align: left;
-        }
+        .card-corner { font-size: 11px; font-weight: bold; color: #111; width: 100%; text-align: left; }
         .card-corner.br { text-align: right; }
-        
-        .card-illustration {
-            width: 100%;
-            height: 85px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .card-back {
-            background: #900C3F;
-            border: 2px solid #ffffff;
-            justify-content: center;
-            align-items: center;
-        }
+        .card-illustration { width: 100%; height: 85px; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #111; }
+        .card-back { background: #900C3F; border: 2px solid #ffffff; justify-content: center; align-items: center; }
         .card-back-design {
-            width: 86%;
-            height: 86%;
-            border: 2px solid #f4d35e;
+            width: 86%; height: 86%; border: 2px solid #f4d35e;
             background: repeating-linear-gradient(45deg, #581845, #581845 6px, #900C3F 6px, #900C3F 12px);
             border-radius: 3px;
         }
-        
-        svg { width: 100%; height: 100%; }
-
         .scopa-banner {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #f1c40f, #e67e22);
-            color: #fff;
-            padding: 20px 40px;
-            border-radius: 15px;
-            border: 4px solid #fff;
-            box-shadow: 0 0 30px rgba(241, 196, 15, 0.9);
-            font-size: 32px;
-            font-weight: bold;
-            text-transform: uppercase;
-            z-index: 100;
-            animation: scopaPop 1.2s ease-in-out infinite alternate;
+            display: none; position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); background: linear-gradient(135deg, #f1c40f, #e67e22);
+            color: #fff; padding: 20px 40px; border-radius: 15px; border: 4px solid #fff;
+            box-shadow: 0 0 30px rgba(241, 196, 15, 0.9); font-size: 32px; font-weight: bold;
+            z-index: 100; animation: scopaPop 0.8s ease-in-out;
         }
-
         @keyframes scopaPop {
-            0% { transform: translate(-50%, -50%) scale(0.9); box-shadow: 0 0 15px #f1c40f; }
-            100% { transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 40px #f1c40f, 0 0 60px #e67e22; }
+            0% { transform: translate(-50%, -50%) scale(0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="score-board">
-            Punti Tuoi: <span id="userScore">0</span> / 11 | CPU: <span id="cpuScore">0</span> / 11
-        </div>
+        <div class="score-board">Scope Tuoi: <span id="userScore">0</span> | CPU: <span id="cpuScore">0</span></div>
         <button class="voice-btn" onclick="toggleVoice()">🎤 Chat Vocale</button>
     </div>
 
@@ -161,83 +74,136 @@
     <div id="scopaBanner" class="scopa-banner">🌟 SCOPA! 🌟</div>
 
     <div class="section-title">Avversario (CPU)</div>
-    <div class="table" id="cpuHand">
-        <div class="card card-back"><div class="card-back-design"></div></div>
-        <div class="card card-back"><div class="card-back-design"></div></div>
-        <div class="card card-back"><div class="card-back-design"></div></div>
-    </div>
+    <div class="table" id="cpuHand"></div>
 
     <div class="section-title">Tavolo</div>
-    <div class="table" id="tableCards">
-        <div class="card">
-            <div class="card-corner" style="color: #c0392b;">1</div>
-            <div class="card-illustration">
-                <svg viewBox="0 0 100 130">
-                    <circle cx="50" cy="65" r="38" fill="#f1c40f" stroke="#b8860b" stroke-width="3"/>
-                    <circle cx="50" cy="65" r="32" fill="none" stroke="#d35400" stroke-width="1.5" stroke-dasharray="3 2"/>
-                    <path d="M50 42 Q46 48 40 46 Q35 55 42 68 Q32 75 35 85 Q50 82 50 88 Q50 82 65 85 Q68 75 58 68 Q65 55 60 46 Q54 48 50 42 Z" fill="#111"/>
-                </svg>
-            </div>
-            <div class="card-corner br" style="color: #c0392b;">1</div>
-        </div>
-
-        <div class="card">
-            <div class="card-corner" style="color: #2980b9;">3</div>
-            <div class="card-illustration">
-                <svg viewBox="0 0 100 130">
-                    <path d="M25 105 C 45 70, 55 40, 75 15 C 70 25, 45 60, 20 95 Z" fill="#5d6d7e" stroke="#2c3e50"/>
-                    <path d="M75 105 C 55 70, 45 40, 25 15 C 30 25, 55 60, 80 95 Z" fill="#5d6d7e" stroke="#2c3e50"/>
-                </svg>
-            </div>
-            <div class="card-corner br" style="color: #2980b9;">3</div>
-        </div>
-    </div>
+    <div class="table" id="tableCards"></div>
 
     <div class="section-title">Tua Mano</div>
-    <div class="hand" id="userHand">
-        <div class="card" onclick="playCard('Settebello', 7, true)">
-            <div class="card-corner" style="color: #c0392b;">7</div>
-            <div class="card-illustration">
-                <svg viewBox="0 0 100 130">
-                    <circle cx="50" cy="65" r="16" fill="#f1c40f" stroke="#b8860b" stroke-width="2"/>
-                    <circle cx="25" cy="25" r="11" fill="#f1c40f" stroke="#b8860b"/>
-                    <circle cx="75" cy="25" r="11" fill="#f1c40f" stroke="#b8860b"/>
-                    <circle cx="25" cy="105" r="11" fill="#f1c40f" stroke="#b8860b"/>
-                    <circle cx="75" cy="105" r="11" fill="#f1c40f" stroke="#b8860b"/>
-                </svg>
-            </div>
-            <div class="card-corner br" style="color: #c0392b;">7</div>
-        </div>
-    </div>
+    <div class="hand" id="userHand"></div>
 
     <script>
+        const suits = ['Oro', 'Coppe', 'Spade', 'Bastoni'];
+        const suitIcons = { 'Oro': '🪙', 'Coppe': '🏆', 'Spade': '⚔️', 'Bastoni': '🪵' };
+        
+        let deck = [];
+        let table = [];
+        let userHand = [];
+        let cpuHand = [];
         let userScore = 0;
         let cpuScore = 0;
 
-        function triggerScopa() {
-            const banner = document.getElementById('scopaBanner');
-            banner.style.display = 'block';
-            userScore += 1;
-            document.getElementById('userScore').innerText = userScore;
-
-            setTimeout(() => {
-                banner.style.display = 'none';
-                if(userScore >= 11) {
-                    alert('🎉 CONGRATULAZIONI! Hai vinto la partita raggiungendo 11 Punti!');
+        function createDeck() {
+            deck = [];
+            for (let suit of suits) {
+                for (let val = 1; val <= 10; val++) {
+                    deck.push({ value: val, suit: suit });
                 }
-            }, 2000);
+            }
+            deck.sort(() => Math.random() - 0.5);
         }
 
-        function playCard(name, value, isScopa) {
-            if(isScopa) {
-                triggerScopa();
+        function initGame() {
+            createDeck();
+            userHand = [deck.pop(), deck.pop(), deck.pop()];
+            cpuHand = [deck.pop(), deck.pop(), deck.pop()];
+            table = [deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+            render();
+        }
+
+        function renderCard(card, onClick = null, isBack = false) {
+            if (isBack) {
+                return `<div class="card card-back"><div class="card-back-design"></div></div>`;
+            }
+            const color = (card.suit === 'Oro' || card.suit === 'Coppe') ? '#c0392b' : '#2980b9';
+            return `
+                <div class="card" ${onClick ? `onclick="${onClick}"` : ''}>
+                    <div class="card-corner" style="color: ${color}">${card.value}</div>
+                    <div class="card-illustration">${suitIcons[card.suit]}</div>
+                    <div class="card-corner br" style="color: ${color}">${card.value}</div>
+                </div>
+            `;
+        }
+
+        function render() {
+            document.getElementById('tableCards').innerHTML = table.map(c => renderCard(c)).join('');
+            document.getElementById('userHand').innerHTML = userHand.map((c, i) => renderCard(c, `playUserCard(${i})`)).join('');
+            document.getElementById('cpuHand').innerHTML = cpuHand.map(() => renderCard(null, null, true)).join('');
+            document.getElementById('userScore').innerText = userScore;
+            document.getElementById('cpuScore').innerText = cpuScore;
+        }
+
+        function playUserCard(index) {
+            const playedCard = userHand.splice(index, 1)[0];
+            processTake(playedCard, 'user');
+            render();
+            
+            if (userHand.length === 0 && cpuHand.length === 0 && deck.length > 0) {
+                userHand = [deck.pop(), deck.pop(), deck.pop()];
+                cpuHand = [deck.pop(), deck.pop(), deck.pop()];
+                render();
+            }
+
+            if (cpuHand.length > 0) {
+                setTimeout(playCpuCard, 1000);
             }
         }
 
-        function toggleVoice() {
-            alert("🎤 Per attivare la Chat Vocale, usa la funzione 'Chat Vocale di Gruppo' attiva in alto nella chat di Telegram!");
+        function playCpuCard() {
+            const playedCard = cpuHand.splice(0, 1)[0];
+            processTake(playedCard, 'cpu');
+            render();
         }
+
+        function processTake(card, player) {
+            // 1. Cerca presa singola
+            let singleIndex = table.findIndex(c => c.value === card.value);
+            if (singleIndex !== -1) {
+                table.splice(singleIndex, 1);
+                checkScopa(player);
+                return;
+            }
+
+            // 2. Cerca combinazione di due carte che sommano al valore giocato
+            for (let i = 0; i < table.length; i++) {
+                for (let j = i + 1; j < table.length; j++) {
+                    if (table[i].value + table[j].value === card.value) {
+                        table.splice(j, 1);
+                        table.splice(i, 1);
+                        checkScopa(player);
+                        return;
+                    }
+                }
+            }
+
+            // 3. Nessuna presa: la carta resta sul tavolo
+            table.push(card);
+        }
+
+        function checkScopa(player) {
+            if (table.length === 0) {
+                if (player === 'user') {
+                    userScore++;
+                    showBanner("🌟 SCOPA TUA! 🌟");
+                } else {
+                    cpuScore++;
+                    showBanner("🤖 SCOPA CPU! 🤖");
+                }
+            }
+        }
+
+        function showBanner(msg) {
+            const banner = document.getElementById('scopaBanner');
+            banner.innerText = msg;
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 1800);
+        }
+
+        function toggleVoice() {
+            alert("🎤 Usa la Chat Vocale di gruppo in alto su Telegram per parlare mentre giochi!");
+        }
+
+        initGame();
     </script>
 </body>
 </html>
-

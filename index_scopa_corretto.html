@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b6623">
+<title>Bot di Dani - Scopa Siciliana</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:#0b6623;color:#fff;font-family:Arial,sans-serif;text-align:center}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;background:#064b1a;border-radius:12px}
+h1{font-size:24px;margin:14px 0 8px}
+#status{min-height:42px;margin:10px auto;padding:10px;background:#064b1a;border-radius:10px;max-width:600px}
+.section{font-weight:bold;color:#ffe082;margin:14px 0 8px}
+.cards{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:7px;min-height:92px}
+.card{width:62px;height:98px;background:#fffaf0;color:#222;border:2px solid #e7d7a5;border-radius:8px;box-shadow:0 3px 6px #003b13;display:flex;flex-direction:column;justify-content:space-between;padding:5px;font-weight:bold;cursor:pointer;touch-action:manipulation}
+.card .symbol{font-size:25px;margin:auto}
+.card.red{color:#b3261e}.card.black{color:#183b74}
+.card:disabled{opacity:.65}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:bold;background:#ffe082;color:#2d260d;cursor:pointer}
+button:disabled{opacity:.45}
+.small{font-size:13px;opacity:.9}
+</style>
+</head>
+<body>
+<header>
+  <strong>Bot di Dani ♠️</strong>
+  <span id="score">Scope: Tu 0 · CPU 0</span>
+</header>
+<h1>Scopa Siciliana</h1>
+<div id="status" role="status">Distribuzione delle carte…</div>
+<div class="section">Avversario (CPU)</div>
+<div id="cpuHand" class="cards"></div>
+<div class="section">Tavolo</div>
+<div id="tableCards" class="cards"></div>
+<div class="section">La tua mano — tocca una carta per giocarla</div>
+<div id="userHand" class="cards"></div>
+<p><button id="newGame">Nuova partita</button></p>
+<p class="small">Gioco dimostrativo contro il computer. La partita e i punteggi non vengono salvati online.</p>
+<script>
+"use strict";
+const suits=[
+ {name:"Denari",icon:"🪙",color:"red"},
+ {name:"Coppe",icon:"🏆",color:"red"},
+ {name:"Spade",icon:"⚔️",color:"black"},
+ {name:"Bastoni",icon:"🪵",color:"black"}
+];
+let deck=[],table=[],userHand=[],cpuHand=[],userCaptures=[],cpuCaptures=[];
+let userScopes=0,cpuScopes=0,lastCapturer=null,busy=false,finished=false;
+
+function shuffle(a){
+ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+ return a;
+}
+function makeDeck(){
+ const d=[];
+ for(const s of suits) for(let value=1;value<=10;value++) d.push({value,suit:s.name,icon:s.icon,color:s.color});
+ return shuffle(d);
+}
+function say(message){document.getElementById("status").textContent=message;}
+function cardHTML(card,clickIndex=null){
+ const button=document.createElement("button");
+ button.className="card "+card.color;
+ button.type="button";
+ button.innerHTML=`<span>${card.value}</span><span class="symbol">${card.icon}</span><span>${card.value}</span>`;
+ if(clickIndex!==null){button.disabled=busy||finished;button.setAttribute("aria-label",`${card.value} di ${card.suit}`);button.addEventListener("click",()=>playUserCard(clickIndex));}
+ return button;
+}
+function render(){
+ const cpu=document.getElementById("cpuHand"),tbl=document.getElementById("tableCards"),hand=document.getElementById("userHand");
+ cpu.replaceChildren();tbl.replaceChildren();hand.replaceChildren();
+ cpuHand.forEach(()=>{const b=document.createElement("div");b.className="card";b.style.background="#8b1538";b.style.borderColor="#ffe082";b.innerHTML='<span>✦</span><span class="symbol">🂠</span><span>✦</span>';cpu.appendChild(b);});
+ table.forEach(c=>tbl.appendChild(cardHTML(c)));
+ userHand.forEach((c,i)=>hand.appendChild(cardHTML(c,i)));
+ document.getElementById("score").textContent=`Scope: Tu ${userScopes} · CPU ${cpuScopes}`;
+ document.getElementById("newGame").disabled=busy;
+}
+function combinationsFor(value){
+ const found=[];
+ for(let mask=1;mask<(1<<table.length);mask++){
+  let sum=0,indices=[];
+  for(let i=0;i<table.length;i++) if(mask&(1<<i)){sum+=table[i].value;indices.push(i);}
+  if(sum===value) found.push(indices);
+ }
+ return found;
+}
+function takeCard(card,player,chosenIndices=null){
+ let indices=[];
+ const exact=table.findIndex(c=>c.value===card.value);
+ if(exact!==-1){indices=[exact];}
+ else if(chosenIndices && chosenIndices.length){indices=chosenIndices;}
+ else{
+  const choices=combinationsFor(card.value);
+  if(choices.length) indices=choices[0];
+ }
+ if(indices.length){
+  const taken=indices.map(i=>table[i]);
+  for(const i of [...indices].sort((a,b)=>b-a)) table.splice(i,1);
+  if(player==="user") userCaptures.push(card,...taken); else cpuCaptures.push(card,...taken);
+  lastCapturer=player;
+  if(table.length===0 && deck.length===0 && userHand.length===0 && cpuHand.length===0){
+    // La presa finale non conta come scopa.
+  } else if(table.length===0){
+    if(player==="user")userScopes++;else cpuScopes++;
+    say(player==="user"?"Scopa! Hai preso tutte le carte dal tavolo.":"La CPU ha fatto scopa!");
+  } else say(player==="user"?"Presa!":"La CPU ha fatto una presa.");
+ }else{
+  table.push(card);
+  say(player==="user"?"Carta lasciata sul tavolo.":"La CPU ha lasciato una carta sul tavolo.");
+ }
+}
+function dealHands(){
+ if(deck.length===0)return;
+ userHand=[];cpuHand=[];
+ for(let i=0;i<3 && deck.length;i++)userHand.push(deck.pop());
+ for(let i=0;i<3 && deck.length;i++)cpuHand.push(deck.pop());
+}
+function playUserCard(index){
+ if(busy||finished||!userHand[index])return;
+ const card=userHand.splice(index,1)[0];
+ takeCard(card,"user");
+ render();
+ if(userHand.length===0 && cpuHand.length===0){
+  if(deck.length>0){dealHands();render();say("Nuove carte distribuite. Tocca una tua carta.");return;}
+  finishGame();return;
+ }
+ if(cpuHand.length>0){
+  busy=true;render();say("La CPU sta giocando…");
+  setTimeout(playCpuCard,700);
+ }
+}
+function playCpuCard(){
+ if(finished)return;
+ const card=cpuHand.shift();
+ if(card)takeCard(card,"cpu");
+ if(userHand.length===0 && cpuHand.length===0){
+  if(deck.length>0){dealHands();busy=false;render();say("Nuove carte distribuite. Tocca una tua carta.");return;}
+  busy=false;finishGame();return;
+ }
+ busy=false;render();
+ if(!finished)say("Tocca una carta della tua mano.");
+}
+function finishGame(){
+ if(table.length && lastCapturer){
+  (lastCapturer==="user"?userCaptures:cpuCaptures).push(...table);
+  table=[];
+ }
+ finished=true;busy=false;render();
+ const userPoints=scoreCaptures(userCaptures,userScopes);
+ const cpuPoints=scoreCaptures(cpuCaptures,cpuScopes);
+ let result=`Partita terminata! Punti — Tu: ${userPoints}, CPU: ${cpuPoints}. `;
+ result+=userPoints>cpuPoints?"Hai vinto!":userPoints<cpuPoints?"Ha vinto la CPU.":"Pareggio.";
+ say(result);
+}
+function scoreCaptures(captures,scopes){
+ // Punteggio base per la demo: scope + maggior numero di carte + maggior numero di denari + settebello.
+ let points=scopes;
+ if(captures.length>20)points++;
+ const coins=captures.filter(c=>c.suit==="Denari");
+ if(coins.length>5)points++;
+ if(captures.some(c=>c.suit==="Denari"&&c.value===7))points++;
+ return points;
+}
+function newGame(){
+ deck=makeDeck();table=[];userHand=[];cpuHand=[];userCaptures=[];cpuCaptures=[];
+ userScopes=0;cpuScopes=0;lastCapturer=null;busy=false;finished=false;
+ for(let i=0;i<4;i++)table.push(deck.pop());
+ dealHands();render();say("Partita iniziata. Tocca una carta della tua mano.");
+}
+document.getElementById("newGame").addEventListener("click",newGame);
+newGame();
+</script>
+</body>
+</html>

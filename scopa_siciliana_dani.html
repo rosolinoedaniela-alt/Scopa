@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scopa Siciliana — Dani</title>
+<style>
+:root{--felt:#08652f;--felt2:#064a25;--gold:#ffd76a;--cream:#fff9e9}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at center,var(--felt),var(--felt2));color:#fff;font-family:system-ui,Arial,sans-serif;min-height:100vh;padding:12px;text-align:center}
+main{max-width:760px;margin:auto}
+h1{margin:8px 0 4px;color:var(--gold);font-size:clamp(25px,5vw,38px);text-shadow:0 2px 5px #001b0c}
+.subtitle{margin:0 0 12px;font-size:13px;opacity:.9}
+.top{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;background:#001d11a8;border:1px solid #ffffff30;padding:10px;border-radius:12px}
+.score{font-weight:800;color:var(--gold)}
+button{border:0;border-radius:10px;padding:10px 13px;font-weight:800;cursor:pointer}
+.primary{background:var(--gold);color:#342300}
+.secondary{background:#e7f5e9;color:#123a20}
+.status{min-height:24px;margin:12px 0;color:#fff4c8;font-weight:700}
+.zone{background:#001b0d55;border:1px solid #ffffff28;border-radius:14px;padding:10px;margin:10px 0}
+.zone h2{font-size:14px;color:var(--gold);margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em}
+.cards{display:flex;gap:7px;justify-content:center;align-items:center;flex-wrap:wrap;min-height:82px}
+.card{width:clamp(56px,15vw,78px);height:clamp(91px,24vw,120px);border-radius:8px;background:var(--cream);color:#171717;border:2px solid #f0dca4;box-shadow:0 4px 9px #00170c99;display:flex;flex-direction:column;justify-content:space-between;padding:5px;cursor:pointer;transition:transform .16s,box-shadow .16s;user-select:none}
+.card:active{transform:translateY(-5px)}
+.card:hover{box-shadow:0 0 0 2px var(--gold),0 5px 12px #00170c}
+.card.red{color:#b72d27}.card.black{color:#202b70}
+.corner{font-size:12px;font-weight:900;text-align:left}.corner.bottom{text-align:right}
+.pip{font-size:clamp(22px,6vw,34px);line-height:1}
+.back{background:repeating-linear-gradient(45deg,#8b123e,#8b123e 6px,#b72c58 6px,#b72c58 12px);border:3px solid #fff1c5}
+.back .pip{color:#ffe28c}
+.hand .card{cursor:pointer}
+.hand .card:hover{transform:translateY(-7px)}
+.controls{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.small{font-size:12px;opacity:.85;line-height:1.5}
+.banner{display:none;position:fixed;z-index:5;left:50%;top:45%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#ffe56d,#f28b24);color:#4c2100;padding:20px 28px;border:4px solid white;border-radius:18px;font-size:clamp(27px,7vw,44px);font-weight:1000;box-shadow:0 0 0 100vmax #00150980,0 0 35px #ffd76a;animation:pop .55s ease-out}
+.banner.show{display:block}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.35)}70%{transform:translate(-50%,-50%) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}
+dialog{border:2px solid var(--gold);border-radius:14px;background:#073f22;color:white;max-width:90vw}
+dialog button{margin:8px}
+@media(min-width:600px){body{padding:20px}.zone{padding:14px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>🃏 Scopa Siciliana</h1>
+  <p class="subtitle">Bot di Dani · prova da sola contro il computer</p>
+  <div class="top">
+    <div class="score">Dani <span id="userScore">0</span> — CPU <span id="cpuScore">0</span><div class="small">Obiettivo: 11 punti</div></div>
+    <div><button class="secondary" id="newGame">Nuova partita</button></div>
+  </div>
+  <div class="status" id="status">La tua mano: scegli una carta.</div>
+  <section class="zone">
+    <h2>Avversario · CPU <span id="cpuCount"></span></h2>
+    <div class="cards" id="cpuHand"></div>
+  </section>
+  <section class="zone">
+    <h2>Tavolo verde</h2>
+    <div class="cards" id="tableCards"></div>
+  </section>
+  <section class="zone">
+    <h2>La tua mano · tocca una carta</h2>
+    <div class="cards hand" id="userHand"></div>
+  </section>
+  <div class="controls"><button class="primary" id="rules">Come si gioca</button></div>
+  <p class="small">Carte siciliane stilizzate · partita locale contro CPU.<br>Le stanze online per invitare amici richiedono un servizio online aggiuntivo.</p>
+</main>
+<div class="banner" id="banner">🌟 SCOPA! 🌟</div>
+<dialog id="rulesDialog">
+  <h3>Regole rapide</h3>
+  <p>Gioca una carta per prendere una carta dello stesso valore oppure carte che sommano il suo valore. Se non puoi prendere, la carta resta sul tavolo. Se svuoti il tavolo con una presa, fai Scopa.</p>
+  <p>Ogni giocatore riceve 3 carte; quando entrambi finiscono la mano, ne vengono distribuite altre 3 finché il mazzo termina. Vince chi raggiunge almeno 11 punti.</p>
+  <button class="primary" id="closeRules">Ho capito</button>
+</dialog>
+<script>
+(() => {
+  const suits = [
+    {name:'Denari', pip:'🪙', color:'red'},
+    {name:'Coppe', pip:'🏆', color:'red'},
+    {name:'Spade', pip:'⚔️', color:'black'},
+    {name:'Bastoni', pip:'🪵', color:'black'}
+  ];
+  let deck=[], table=[], userHand=[], cpuHand=[], userScore=0, cpuScore=0;
+  let lastTaker='user', busy=false, gameOver=false;
+  const $ = id => document.getElementById(id);
+  const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+  function makeDeck(){
+    deck=[];
+    suits.forEach(s=>{for(let v=1;v<=10;v++)deck.push({value:v,suit:s.name,pip:s.pip,color:s.color});});
+    shuffle(deck);
+  }
+  function cardHTML(c, idx, clickable=false){
+    if(!c) return `<div class="card back" aria-label="carta coperta"><div class="corner">D</div><div class="pip">✦</div><div class="corner bottom">D</div></div>`;
+    const click = clickable ? `data-card="${idx}" role="button" tabindex="0" aria-label="Gioca ${c.value} di ${c.suit}"` : '';
+    return `<div class="card ${c.color}" ${click}><div class="corner">${c.value}</div><div class="pip">${c.pip}</div><div class="small">${c.suit}</div><div class="corner bottom">${c.value}</div></div>`;
+  }
+  function render(){
+    $('tableCards').innerHTML=table.map(c=>cardHTML(c)).join('') || '<span class="small">Tavolo vuoto</span>';
+    $('userHand').innerHTML=userHand.map((c,i)=>cardHTML(c,i,true)).join('');
+    $('cpuHand').innerHTML=cpuHand.map(()=>cardHTML(null)).join('') || '<span class="small">Nessuna carta in mano</span>';
+    $('cpuCount').textContent=cpuHand.length ? `(${cpuHand.length} carte)` : '';
+    $('userScore').textContent=userScore; $('cpuScore').textContent=cpuScore;
+    $('userHand').querySelectorAll('[data-card]').forEach(el=>{
+      el.addEventListener('click',()=>playUser(Number(el.dataset.card)));
+      el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playUser(Number(el.dataset.card));}});
+    });
+  }
+  function setStatus(t){$('status').textContent=t;}
+  function showScopa(who){
+    $('banner').textContent=who==='user'?'🎉 SCOPA DI DANI! 🎉':'🤖 SCOPA DELLA CPU!';
+    $('banner').classList.add('show');
+    setTimeout(()=>$('banner').classList.remove('show'),1400);
+  }
+  function takeOptions(card){
+    const same=table.map((c,i)=>c.value===card.value?i:-1).filter(i=>i>=0);
+    if(same.length) return [same[0]];
+    // Find one combination of two or more cards summing to the played card.
+    for(let mask=1;mask<(1<<table.length);mask++){
+      let sum=0, ids=[];
+      for(let i=0;i<table.length;i++) if(mask&(1<<i)){sum+=table[i].value;ids.push(i);}
+      if(sum===card.value) return ids;
+    }
+    return [];
+  }
+  function playCard(card, who){
+    const ids=takeOptions(card);
+    if(ids.length){
+      ids.sort((a,b)=>b-a).forEach(i=>table.splice(i,1));
+      lastTaker=who;
+      if(table.length===0){if(who==='user')userScore++;else cpuScore++;showScopa(who);}
+    } else {table.push(card);}
+  }
+  function deal(){
+    if(deck.length===0)return;
+    userHand=deck.splice(0,3); cpuHand=deck.splice(0,3);
+    setStatus('Nuove carte distribuite: tocca una carta.');
+    render();
+  }
+  function finishHand(){
+    if(deck.length===0 && userHand.length===0 && cpuHand.length===0){
+      // Remaining table cards go to the last player who took a card.
+      if(table.length){ if(lastTaker==='user') userScore++; else cpuScore++; table=[]; }
+      render();
+      if(userScore>=11||cpuScore>=11){
+        gameOver=true;
+        setStatus(userScore===cpuScore?'Pareggio! Avvia una nuova partita.':userScore>cpuScore?'Hai vinto la partita! 🎉':'La CPU ha vinto. Riprova!');
+      } else {
+        setStatus(`Fine della mano. Dani ${userScore} — CPU ${cpuScore}. Nuova mano in arrivo…`);
+        setTimeout(()=>{if(!gameOver){deal();}},1000);
+      }
+      return true;
+    }
+    return false;
+  }
+  function playUser(index){
+    if(busy||gameOver||index<0||index>=userHand.length)return;
+    busy=true;
+    const c=userHand.splice(index,1)[0];
+    playCard(c,'user'); render();
+    if(finishHand()){busy=false;return;}
+    setStatus('La CPU sta giocando…');
+    setTimeout(()=>{
+      if(gameOver){busy=false;return;}
+      if(cpuHand.length){
+        const ci=chooseCpuCard();
+        const cc=cpuHand.splice(ci,1)[0];
+        playCard(cc,'cpu'); render();
+      }
+      if(!finishHand()){
+        if(userHand.length===0&&cpuHand.length===0&&deck.length) deal();
+        else setStatus('Tocca una carta per giocare.');
+      }
+      busy=false;
+    },650);
+  }
+  function chooseCpuCard(){
+    // Prefer a card that can take; otherwise play the lowest value.
+    let best=0, bestScore=-Infinity;
+    cpuHand.forEach((c,i)=>{
+      const ids=takeOptions(c);
+      const score=ids.length ? 100+ids.reduce((s,id)=>s+table[id].value,0) : -c.value;
+      if(score>bestScore){bestScore=score;best=i;}
+    });
+    return best;
+  }
+  function start(){
+    makeDeck(); table=deck.splice(0,4); userHand=[];cpuHand=[];
+    userScore=0;cpuScore=0;lastTaker='user';busy=false;gameOver=false;
+    $('banner').classList.remove('show');deal();
+  }
+  $('newGame').addEventListener('click',start);
+  $('rules').addEventListener('click',()=>$('rulesDialog').showModal());
+  $('closeRules').addEventListener('click',()=>$('rulesDialog').close());
+  start();
+})();
+</script>
+</body>
+</html>

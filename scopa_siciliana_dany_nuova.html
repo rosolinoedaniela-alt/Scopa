@@ -1,0 +1,179 @@
+
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scopa Siciliana di Dany</title>
+<style>
+body{margin:0;background:#104b37;color:#fff5d8;font-family:Georgia,serif;text-align:center}
+header{padding:18px 8px;color:#ffe5a1}
+h1{font-size:27px;margin:4px}
+main{max-width:650px;margin:auto;padding:10px}
+.score{display:flex;justify-content:space-around;background:#092f24;border:1px solid #e3c477;border-radius:12px;padding:12px;margin-bottom:12px}
+.board{background:#176447;border:5px solid #94652e;border-radius:24px;padding:12px}
+.label{font:13px Arial,sans-serif;margin:10px}
+.cards{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;min-height:80px}
+.card{width:53px;height:78px;background:#fff8e8;color:#25342b;border:1px solid #dfcfa9;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:0 2px 4px #002519}
+.card.red{color:#b52b35}
+.rank{position:absolute;top:3px;left:4px;font:12px Arial}
+.suit{font-size:25px}
+.name{font:9px Arial;margin-top:3px}
+.hand .card{width:59px;height:89px;cursor:pointer}
+.status{min-height:42px;padding:10px;font:14px/1.4 Arial;color:#fff0bd}
+button{background:#f4d58a;border:1px solid #fff0b8;border-radius:9px;padding:11px;margin:5px;font-weight:bold}
+small{font:12px Arial;color:#d8ebdc}
+</style>
+</head>
+<body>
+<header>
+<h1>⚜️ Scopa Siciliana di Dany 🎴</h1>
+Carte siciliane · Sfida fino a 11 punti
+</header>
+<main>
+<div class="score">
+<div><b>TU</b><br><span id="ps">0</span></div>
+<div><b>AVVERSARIO</b><br><span id="cs">0</span></div>
+</div>
+<section class="board">
+<div class="label">Carte dell'avversario</div>
+<div id="cpu" class="cards"></div>
+<div class="label">Carte sul tavolo</div>
+<div id="table" class="cards"></div>
+<div id="status" class="status">Tocca una tua carta per giocare.</div>
+<div class="label">La tua mano</div>
+<div id="player" class="cards hand"></div>
+<button onclick="start()">Nuova partita</button>
+<button onclick="rules()">Regole rapide</button>
+</section>
+<p><small>Prototipo contro il computer. Il gioco online richiede un servizio aggiuntivo.</small></p>
+</main>
+<script>
+const suits=[
+{name:"Denari",symbol:"♦",red:false},
+{name:"Coppe",symbol:"♥",red:true},
+{name:"Spade",symbol:"♠",red:false},
+{name:"Bastoni",symbol:"♣",red:false}
+];
+const ranks=["Asso","2","3","4","5","6","7","Fante","Cavallo","Re"];
+let deck=[],player=[],cpu=[],table=[],pScore=0,cScore=0;
+let pTaken=[],cTaken=[],pScope=0,cScope=0,lastTaker="",turn="player",busy=false,over=false;
+const $=id=>document.getElementById(id);
+function makeDeck(){
+ let d=[];
+ suits.forEach((s,si)=>ranks.forEach((r,i)=>d.push({
+ label:r,value:i+1,suit:s.name,symbol:s.symbol,red:s.red,id:si+"-"+(i+1)
+ })));
+ for(let i=d.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}
+ return d;
+}
+function node(c,back=false,click=null){
+ let e=document.createElement("div");
+ e.className="card"+(c&&c.red?" red":"");
+ if(back){e.style.background="repeating-linear-gradient(45deg,#f7e6b8,#f7e6b8 4px,#276348 4px,#276348 8px)";e.textContent="⚜";e.style.color="#ffe5a1"}
+ else{
+  let r=document.createElement("span");r.className="rank";r.textContent=c.label==="Asso"?"A":c.label;e.append(r);
+  let s=document.createElement("span");s.className="suit";s.textContent=c.symbol;e.append(s);
+  let n=document.createElement("span");n.className="name";n.textContent=c.suit;e.append(n);
+ }
+ if(click)e.onclick=click;
+ return e;
+}
+function say(t){$("status").textContent=t}
+function render(){
+ $("ps").textContent=pScore;$("cs").textContent=cScore;
+ $("player").replaceChildren(...player.map(c=>node(c,false,turn==="player"&&!busy&&!over?()=>play(c.id):null)));
+ $("cpu").replaceChildren(...cpu.map(()=>node(null,true)));
+ $("table").replaceChildren(...table.map(c=>node(c)));
+}
+function deal(){
+ for(let i=0;i<3&&deck.length;i++)player.push(deck.pop());
+ for(let i=0;i<3&&deck.length;i++)cpu.push(deck.pop());
+}
+function start(){
+ deck=makeDeck();player=[];cpu=[];table=[];pScore=0;cScore=0;
+ pTaken=[];cTaken=[];pScope=0;cScope=0;lastTaker="";
+ turn="player";busy=false;over=false;
+ for(let i=0;i<4;i++)table.push(deck.pop());
+ deal();say("Partita iniziata! Scegli una carta.");render();
+}
+function combos(card){
+ let out=[];
+ for(let mask=1;mask<(1<<table.length);mask++){
+  let sum=0,ids=[];
+  for(let i=0;i<table.length;i++)if(mask&(1<<i)){sum+=table[i].value;ids.push(i)}
+  if(sum===card.value)out.push(ids);
+ }
+ return out;
+}
+function take(card,who,combo){
+ let old=table.slice(),set=new Set(combo);
+ table=table.filter((c,i)=>!set.has(i));
+ let got=[card,...combo.map(i=>old[i])];
+ (who==="player"?pTaken:cTaken).push(...got);
+ lastTaker=who;
+ if(table.length===0){if(who==="player")pScope++;else cScope++;return true}
+ return false;
+}
+function play(id){
+ if(turn!=="player"||busy||over)return;
+ let i=player.findIndex(c=>c.id===id);if(i<0)return;
+ let card=player.splice(i,1)[0],opts=combos(card);
+ if(opts.length){
+  let chosen=opts.find(x=>x.length===1)||opts[0];
+  let scopa=take(card,"player",chosen);
+  say(scopa?"Scopa! Hai svuotato il tavolo!":"Hai preso le carte.");
+ }else{table.push(card);say("Hai giocato una carta. Tocca all'avversario…")}
+ turn="cpu";busy=true;render();setTimeout(cpuPlay,500);
+}
+function cpuPlay(){
+ if(over)return;
+ if(!cpu.length){nextTurn();return}
+ let card=cpu.splice(Math.floor(Math.random()*cpu.length),1)[0],opts=combos(card);
+ if(opts.length){
+  let chosen=opts.find(x=>x.length===1)||opts.sort((a,b)=>b.length-a.length)[0];
+  let scopa=take(card,"cpu",chosen);
+  say(scopa?"L'avversario ha fatto scopa.":"L'avversario ha preso delle carte.");
+ }else{table.push(card);say("L'avversario ha giocato. Tocca a te.")}
+ render();nextTurn();
+}
+function nextTurn(){
+ if(player.length===0&&cpu.length===0){
+  if(deck.length){deal();turn="player";busy=false;render();say("Nuove carte distribuite. Tocca a te.");return}
+  finish();return;
+ }
+ turn="player";busy=false;render();
+}
+function primieraVal(c){
+ return ({1:16,2:12,3:13,4:14,5:15,6:18,7:21})[c.value]||10;
+}
+function primiera(cards){
+ let best={Denari:0,Coppe:0,Spade:0,Bastoni:0};
+ cards.forEach(c=>best[c.suit]=Math.max(best[c.suit],primieraVal(c)));
+ return Object.values(best).reduce((a,b)=>a+b,0);
+}
+function finish(){
+ if(lastTaker==="player")pTaken.push(...table);
+ if(lastTaker==="cpu")cTaken.push(...table);
+ table=[];
+ let p=0,c=0;
+ if(pTaken.length>cTaken.length)p++;else if(cTaken.length>pTaken.length)c++;
+ let pd=pTaken.filter(x=>x.suit==="Denari").length,cd=cTaken.filter(x=>x.suit==="Denari").length;
+ if(pd>cd)p++;else if(cd>pd)c++;
+ if(pTaken.some(x=>x.suit==="Denari"&&x.value===7))p++;
+ if(cTaken.some(x=>x.suit==="Denari"&&x.value===7))c++;
+ if(primiera(pTaken)>primiera(cTaken))p++;else if(primiera(cTaken)>primiera(pTaken))c++;
+ p+=pScope;c+=cScope;pScore+=p;cScore+=c;
+ if(pScore>=11||cScore>=11){
+  over=true;say(pScore===cScore?"Pareggio! Premi Nuova partita.":pScore>cScore?"Hai vinto la partita! 🎉":"Ha vinto l'avversario. Riprova!");
+ }else{
+  say("Fine mano: tu +"+p+", avversario +"+c+". Si distribuiscono nuove carte.");
+  pTaken=[];cTaken=[];pScope=0;cScope=0;lastTaker="";player=[];cpu=[];deal();turn="player";busy=false;
+ }
+ render();
+}
+function rules(){say("Prendi carte dello stesso valore o carte la cui somma è uguale. Se svuoti il tavolo fai scopa. A fine mano: più carte, più denari, settebello e primiera valgono un punto; ogni scopa vale un punto. Vince chi arriva a 11.");}
+start();
+</script>
+</body>
+</html>

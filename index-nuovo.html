@@ -331,12 +331,12 @@ function finishHand(){
  finished=true;
  render();
 
- if(playerScore>=11||cpuScore>=11){
+  if(playerScore>=11||cpuScore>=11){
   say(playerScore===cpuScore
-   ?"Parità! Premi Nuova partita per giocare ancora."
+   ?"Partita terminata in parità!"
    :playerScore>cpuScore
-    ?"Hai vinto la partita! Premi Nuova partita per giocare ancora."
-    :"Il computer ha vinto. Premi Nuova partita per riprovare.");
+    ?"Hai vinto la partita!"
+    :"Il computer ha vinto.");
  }else{
   say("Mano terminata! Tu +"+p+" punti, computer +"+c+
       ". Punteggio: "+playerScore+"–"+cpuScore+
@@ -346,8 +346,5 @@ function finishHand(){
   },1800);
  }
 }
-
 newGame();
-</script>
-</body>
-</html>
+

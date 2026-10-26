@@ -1,287 +1,45 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scopa Monopolygoita</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#10291e;color:#fff3d0;font-family:Arial,sans-serif;text-align:center}
-header{padding:14px;background:#173d2a;border-bottom:3px solid #d3b46b}
-h1{margin:0;color:#f4d58d;letter-spacing:3px;font-size:clamp(22px,6vw,34px)}
-#score{margin-top:10px;font-weight:bold}
-.label{color:#f4d58d;font-weight:bold;margin:12px 0 7px}
-.area{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;padding:7px;min-height:100px}
-#table{margin:8px auto;padding:8px;background:#205b3b;border:3px solid #c9a75d;border-radius:18px;max-width:700px;min-height:155px}
-.card{width:clamp(47px,14vw,78px);aspect-ratio:1324/2188;object-fit:contain;background:#fff8e6;border:1px solid #d6bd83;border-radius:6px;box-shadow:0 2px 5px #07170e;cursor:pointer;transition:transform .2s,outline .2s}
-.card.selected{outline:3px solid #ffe078;transform:translateY(-5px)}
-.card.valid{outline:3px solid #62f59a;transform:translateY(-4px)}
-.card.chosen{outline:4px solid #ffe078;transform:translateY(-7px)}
-.back{height:105px;background:repeating-linear-gradient(45deg,#8b2530,#8b2530 5px,#f2d8a4 6px,#8b2530 9px);border:3px double #f2d8a4}
-button{background:#d8b568;color:#172b1e;border:0;border-radius:9px;padding:12px 15px;margin:5px;font-weight:bold;font-size:15px}
-button:disabled{opacity:.45}
-#message{padding:12px;min-height:48px;line-height:1.4}
-#confetti{font-size:28px;min-height:0}
-.deal{animation:deal .35s ease-out}
-@keyframes deal{from{opacity:0;transform:translateY(-22px) rotate(-5deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
-@keyframes celebrate{0%{transform:scale(.7)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
-.celebrate{animation:celebrate .45s ease-in-out}
-small{display:block;color:#d6ceb9;padding:12px}
-</style>
-</head>
-<body>
-<header>
-<h1>SCOPA MONOPOLYGOITA</h1>
-<div>Carte napoletane · Tavolo verde e oro</div>
-<div id="score">Tu 0 — Computer 0</div>
-</header>
 
-<div class="label">AVVERSARIO</div>
-<div id="opponent" class="area"></div>
-
-<div id="table">
-  <div class="label">TAVOLO — TOCCA LE CARTE DA PRENDERE</div>
-  <div id="middle" class="area"></div>
-</div>
-
-<div class="label">LE TUE CARTE</div>
-<div id="player" class="area"></div>
-
-<div id="confetti"></div>
-<div id="message">Preparo le carte…</div>
-<div id="actions">
-<button id="play" onclick="playPlayer()" disabled>Gioca carta</button>
-</div>
-<small>Scopa Monopolygoita</small>
-
-<script>
-const suits=["denari","coppe","spade","bastoni"];
-const files=[
-"01 Asso di denari.jpg","02 Due di denari.jpg",
-"03 Tre di denari.jpg","04 Quattro di denari.jpg",
-"05 Cinque di denari.jpg","06 Sei di denari.jpg",
-"07 Sette di denari.jpg","08 Otto di denari.jpg",
-"09 Nove di denari.jpg","10 Dieci di denari.jpg",
-"11 Asso di coppe.jpg","12 Due di coppe.jpg",
-"13 Tre di coppe.jpg","14 Quattro di coppe.jpg",
-"15 Cinque di coppe.jpg","16 Sei di coppe.jpg",
-"17 Sette di coppe.jpg","18 Otto di coppe.jpg",
-"19 Nove di coppe.jpg","20 Dieci di coppe.jpg",
-"21 Asso di spade.jpg","22 Due di spade.jpg",
-"23 Tre di spade.jpg","24 Quattro di spade.jpg",
-"25 Cinque di spade.jpg","26 Sei di spade.jpg",
-"27 Sette di spade.jpg","28 Otto di spade.jpg",
-"29 Nove di spade.jpg","30 Dieci di spade.jpg",
-"31 Asso di bastoni.jpg","32 Due di bastoni.jpg",
-"33 Tre di bastoni.jpg","34 Quattro di bastoni.jpg",
-"35 Cinque di bastoni.jpg","36 Sei di bastoni.jpg",
-"37 Sette di bastoni.jpg","38 Otto di bastoni.jpg",
-"39 Nove di bastoni.jpg","40 Dieci di Bastoni.jpg"
-];
-
-let deck=[],hand=[],cpu=[],table=[],mine=[],theirs=[];
-let selected=null,chosen=[],turn="player",lastTaker=null;
-let playerScore=0,cpuScore=0,playerScopas=0,cpuScopas=0,finished=false;
-
-function makeDeck(){
- return files.map((file,i)=>({
-  id:i+1,rank:i%10+1,suit:suits[Math.floor(i/10)],
-  file,value:i%10+1
- })).sort(()=>Math.random()-.5);
-}
-function imageURL(c){
- return "https://commons.wikimedia.org/wiki/Special:FilePath/"+encodeURIComponent(c.file);
-}
-function combos(cards,target){
- const out=[];
- for(let mask=1;mask<(1<<cards.length);mask++){
-  const group=cards.filter((c,i)=>mask&(1<<i));
-  if(group.reduce((s,c)=>s+c.value,0)===target)out.push(group);
- }
- return out;
-}
-function sameGroup(a,b){
- return a.length===b.length&&a.every(x=>b.some(y=>x.id===y.id));
-}
-function validGroups(){
- if(selected===null)return [];
- const card=hand.find(c=>c.id===selected);
- return card?combos(table,card.value):[];
-}
-function render(){
- const p=document.getElementById("player");
- const m=document.getElementById("middle");
- const o=document.getElementById("opponent");
- p.replaceChildren();m.replaceChildren();o.replaceChildren();
-
- const groups=validGroups();
- hand.forEach(c=>{
-  const im=document.createElement("img");
-  im.className="card"+(selected===c.id?" selected":"");
-  im.src=imageURL(c);im.alt=c.file;
-  im.onclick=()=>{
-   if(turn!=="player"||finished)return;
-   selected=c.id;chosen=[];render();
-  };
-  p.appendChild(im);
- });
-
- table.forEach(c=>{
-  const im=document.createElement("img");
-  const allowed=groups.some(g=>g.some(x=>x.id===c.id));
-  im.className="card"+(allowed?" valid":"")+
-    (chosen.some(x=>x.id===c.id)?" chosen":"");
-  im.src=imageURL(c);im.alt=c.file;
-  im.onclick=()=>{
-   if(turn!=="player"||finished||selected===null||!allowed)return;
-   const next=table.find(x=>x.id===c.id);
-   const test=chosen.some(x=>x.id===c.id)
-    ?chosen.filter(x=>x.id!==c.id):[...chosen,next];
-   if(groups.some(g=>sameGroup(g,test)))chosen=test;
-   else if(!chosen.some(x=>x.id===c.id))chosen=test;
-   else chosen=test;
-   render();
-  };
-  m.appendChild(im);
- });
-
- cpu.forEach(()=>{
-  const b=document.createElement("div");b.className="card back";o.appendChild(b);
- });
- document.getElementById("score").textContent=
-  "Tu "+playerScore+" — Avversario "+cpuScore;
- document.getElementById("play").disabled=
-  turn!=="player"||finished||selected===null;
-}
-function say(t){document.getElementById("message").textContent=t;}
-function celebrate(){
- document.getElementById("confetti").textContent="🎉 ✨ SCOPA! ✨ 🎉";
- document.getElementById("confetti").className="celebrate";
-}
-function clearCelebrate(){
- document.getElementById("confetti").textContent="";
- document.getElementById("confetti").className="";
-}
-function newGame(){
- deck=makeDeck();hand=[];cpu=[];table=[];mine=[];theirs=[];
- selected=null;chosen=[];turn="player";lastTaker=null;
- playerScore=0;cpuScore=0;playerScopas=0;cpuScopas=0;finished=false;
- clearCelebrate();
- for(let i=0;i<4;i++)table.push(deck.pop());
- deal();
- say("Tocca una tua carta. Le prese valide si evidenziano sul tavolo.");
-}
-function deal(){
- while(hand.length<3&&deck.length)hand.push(deck.pop());
- while(cpu.length<3&&deck.length)cpu.push(deck.pop());
- selected=null;chosen=[];turn="player";render();
- document.querySelectorAll(".card").forEach(c=>c.classList.add("deal"));
-}
-function takeCard(card,who,group){
- if(group.length){
-  const captured=who==="player"?mine:theirs;
-  captured.push(card,...group);
-  table=table.filter(c=>!group.some(x=>x.id===c.id));
-  lastTaker=who;
-  if(table.length===0){
-   if(who==="player")playerScopas++;
-   else cpuScopas++;
-   if(who==="player")celebrate();
-  }
-  if(who==="player")say(table.length===0?"SCOPA! Hai preso tutte le carte!":"Hai preso le carte.");
-  else say(table.length===0?"Il computer ha fatto SCOPA!":"Il computer ha preso delle carte.");
- }else{
-  table.push(card);lastTaker=null;
-  if(who==="player")say("Carta calata sul tavolo.");
-  else say("Il computer ha calato una carta.");
- }
-}
-function playPlayer(){
- if(turn!=="player"||finished||selected===null)return;
- const card=hand.find(c=>c.id===selected);
- if(!card)return;
- const groups=validGroups();
- let group=[];
- if(groups.length){
-  if(groups.length===1)group=groups[0];
-  else{
-   group=groups.find(g=>sameGroup(g,chosen))||[];
-   if(!group.length){
-    say("Tocca sul tavolo le carte della presa che vuoi effettuare.");
-    return;
-   }
-  }
- }
- takeCard(card,"player",group);
- hand=hand.filter(c=>c.id!==card.id);
- selected=null;chosen=[];render();
- if(checkEnd())return;
- turn="cpu";render();say("Tocca all'avversario…");
- setTimeout(cpuMove,650);
-}
-function cpuMove(){
- if(finished)return;
- if(!cpu.length){afterTurn();return;}
- const card=cpu[0];
- const groups=combos(table,card.value);
- const group=groups.find(g=>g.length===1)||groups[0]||[];
- takeCard(card,"cpu",group);
- cpu=cpu.slice(1);render();
- if(checkEnd())return;
- afterTurn();
-}
-function afterTurn(){
- if(!hand.length&&!cpu.length){
-  if(deck.length){deal();say("Nuova mano distribuita automaticamente.");}
-  else finishHand();
- }else{
-  turn="player";render();
-  say("Tocca a te: scegli una carta e poi le carte da prendere sul tavolo.");
- }
-}
-function checkEnd(){
- if(hand.length===0&&cpu.length===0&&deck.length===0){
-  finishHand();return true;
- }
- return false;
-}
 function finishHand(){
- if(lastTaker==="player")mine.push(...table);
- else if(lastTaker==="cpu")theirs.push(...table);
- else if(table.length)mine.push(...table);
- table=[];finished=true;
- const p=points(mine,theirs,playerScopas);
- const c=points(theirs,mine,cpuScopas);
- playerScore+=p;cpuScore+=c;
- render();
- if(playerScore>=11||cpuScore>=11){
-  say(playerScore===cpuScore?"Parità: punteggio pari o superiore a 11.":
-   playerScore>cpuScore?"Hai vinto la partita! Punteggio finale: "+playerScore+"–"+cpuScore:
-   "L'avversario ha vinto. Punteggio finale: "+playerScore+"–"+cpuScore);
- }else{
-  say("Mano terminata. Tu +"+p+"; avversario +"+c+". Prosegue la partita…");
-  setTimeout(nextHand,1800);
- }
+  if(lastTaker==="player") mine.push(...table);
+  else if(lastTaker==="cpu") theirs.push(...table);
+  else if(table.length) mine.push(...table);
+
+  table=[];
+  finished=false;
+
+  const p=points(mine);
+  const c=points(theirs);
+
+  playerScore+=p;
+  cpuScore+=c;
+
+  render();
+
+  if(playerScore>=11 || cpuScore>=11){
+    finished=true;
+    render();
+
+    if(playerScore===cpuScore){
+      say("Parità! Premi Nuova partita per ricominciare.");
+    }else if(playerScore>cpuScore){
+      say("Hai vinto la partita! Premi Nuova partita per giocare ancora.");
+    }else{
+      say("Il computer ha vinto. Premi Nuova partita per riprovare.");
+    }
+    return;
+  }
+
+  mine=[];
+  theirs=[];
+  scopas=0;
+  lastTaker=null;
+
+  say("Mano terminata: tu "+p+" punti, computer "+c+
+      ". Distribuisco le nuove carte…");
+
+  setTimeout(()=>{
+    deal();
+    say("Nuova mano! Il punteggio totale è Tu "+playerScore+
+        " — Computer "+cpuScore+". Tocca a te.");
+  },1000);
 }
-function points(cards,other,scopas){
- let score=scopas;
- if(cards.length>other.length)score++;
- const d=cards.filter(c=>c.suit==="denari").length;
- const od=other.filter(c=>c.suit==="denari").length;
- if(d>od)score++;
- if(cards.some(c=>c.id===7))score++;
- return score;
-}
-function nextHand(){
- if(playerScore>=11||cpuScore>=11)return;
- mine=[];theirs=[];table=[];selected=null;chosen=[];
- lastTaker=null;playerScopas=0;cpuScopas=0;finished=false;
- clearCelebrate();
- for(let i=0;i<4&&deck.length;i++)table.push(deck.pop());
- deal();
- say("Nuova mano: il punteggio totale è conservato.");
-}
-newGame();
-</script>
-</body>
-</html>

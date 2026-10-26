@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -8,7 +9,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:#10291e;color:#fff3d0;font-family:Arial,sans-serif;text-align:center}
 header{padding:14px;background:#173d2a;border-bottom:3px solid #d3b46b}
-h1{margin:0;color:#f4d58d;letter-spacing:1px;font-size:24px}
+h1{margin:0;color:#f4d58d;font-size:24px;letter-spacing:1px}
 #score{margin-top:9px;font-weight:bold;font-size:17px}
 .label{color:#f4d58d;font-weight:bold;margin:12px 0 7px}
 .area{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;padding:5px;min-height:90px}
@@ -16,16 +17,22 @@ h1{margin:0;color:#f4d58d;letter-spacing:1px;font-size:24px}
 .card{width:clamp(48px,15vw,83px);height:auto;aspect-ratio:1324/2188;object-fit:contain;background:#fff8e6;border:1px solid #d6bd83;border-radius:6px;box-shadow:0 2px 5px #07170e;cursor:pointer}
 .card.selected{outline:3px solid #ffe078;transform:translateY(-5px)}
 .card.takeable{outline:4px solid #ffe078;box-shadow:0 0 12px 4px #ffe078;transform:translateY(-4px)}
+.card.capture-selected{outline:4px solid #ff914d;transform:translateY(-7px)}
 .back{height:110px;background:repeating-linear-gradient(45deg,#8b2530,#8b2530 5px,#f2d8a4 6px,#8b2530 9px);border:3px double #f2d8a4}
-button{background:#d8b568;color:#172b1e;border:0;border-radius:9px;padding:12px 18px;margin:5px;font-weight:bold;font-size:16px}
-button:disabled{opacity:.45}
+button{background:#d8b568;color:#172b1e;border:0;border-radius:9px;padding:12px 18px;margin:5px;font-weight:bold;font-size:16px;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
 #message{padding:12px;min-height:50px;line-height:1.4}
-small{display:block;color:#d6ceb9;padding:12px}
+#captureHelp{padding:8px;color:#ffe078;font-size:14px}
 #celebration{display:none;position:fixed;inset:0;z-index:10;pointer-events:none;align-items:center;justify-content:center;font-size:42px;font-weight:bold;color:#ffe078;text-shadow:0 0 12px #e69b25}
-#celebration.show{display:flex;animation:pop 1.4s ease forwards}
+#celebration.show{display:flex;animation:pop 1.5s ease forwards}
 @keyframes pop{0%{transform:scale(.3);opacity:0}25%{transform:scale(1.2);opacity:1}75%{opacity:1}100%{transform:scale(1);opacity:0}}
 .confetti{position:fixed;top:-15px;width:9px;height:14px;z-index:11;pointer-events:none;animation:fall 1.8s linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+#chat{max-width:700px;margin:16px auto;padding:12px;border:1px solid #c9a75d;border-radius:12px;background:#173d2a}
+#chatLog{height:100px;overflow:auto;text-align:left;background:#10291e;padding:8px;border-radius:8px;font-size:14px}
+#chatForm{display:flex;gap:5px;margin-top:8px}
+#chatInput{flex:1;min-width:0;padding:10px;border-radius:7px;border:1px solid #c9a75d}
+small{display:block;color:#d6ceb9;padding:12px}
 </style>
 </head>
 <body>
@@ -41,6 +48,7 @@ small{display:block;color:#d6ceb9;padding:12px}
 <div id="table">
 <div class="label">CARTE SUL TAVOLO</div>
 <div id="middle" class="area"></div>
+<div id="captureHelp"></div>
 </div>
 
 <div class="label">LE TUE CARTE</div>
@@ -48,7 +56,18 @@ small{display:block;color:#d6ceb9;padding:12px}
 
 <div id="message">Preparo le carte…</div>
 <button id="play" onclick="playPlayer()" disabled>Gioca carta</button>
+
 <div id="celebration">SCOPA!</div>
+
+<div id="chat">
+<div class="label">CHAT DELLA PARTITA</div>
+<div id="chatLog">Questa chat è solo locale: i messaggi non vengono ancora inviati all'altro giocatore.</div>
+<form id="chatForm">
+<input id="chatInput" placeholder="Scrivi un messaggio…" maxlength="250">
+<button type="submit">Invia</button>
+</form>
+</div>
+
 <small>Scopa napoletana · Monopolygoita</small>
 
 <script>
@@ -80,11 +99,11 @@ let deck=[],hand=[],cpu=[],table=[],mine=[],theirs=[];
 let selected=null,turn="player",lastTaker=null,finished=false;
 let playerScore=0,cpuScore=0,playerScopes=0,cpuScopes=0;
 let celebrationTimer=null;
+let captureSelection=[];
 
 function makeDeck(){
  const d=files.map((file,i)=>({
-  id:i+1,rank:i%10+1,
-  suit:suits[Math.floor(i/10)],
+  id:i+1,rank:i%10+1,suit:suits[Math.floor(i/10)],
   file,value:i%10+1
  }));
  for(let i=d.length-1;i>0;i--){
@@ -98,20 +117,6 @@ function imageURL(c){
  return "https://commons.wikimedia.org/wiki/Special:FilePath/"+encodeURIComponent(c.file);
 }
 
-function cardImage(c,area){
- const im=document.createElement("img");
- im.className="card";
- if(area==="player"&&selected===c.id)im.classList.add("selected");
- im.src=imageURL(c);
- im.alt=c.file;
- im.loading="lazy";
- im.onerror=()=>{im.style.background="#f2dfb0";};
- if(area==="player"&&turn==="player"&&!finished){
-  im.onclick=()=>{selected=c.id;render();};
- }
- return im;
-}
-
 function combos(cards,target){
  const out=[];
  for(let mask=1;mask<(1<<cards.length);mask++){
@@ -121,13 +126,93 @@ function combos(cards,target){
  return out;
 }
 
+function possibleTakes(card){
+ const exact=table.filter(c=>c.value===card.value);
+ if(exact.length)return [exact];
+ return combos(table,card.value);
+}
+
+function chosenCombo(card,who){
+ const options=possibleTakes(card);
+ if(!options.length)return [];
+ if(who!=="player"||options.length===1)return options[0];
+
+ const chosen=table.filter(c=>captureSelection.includes(c.id));
+ const match=options.find(g=>
+  g.length===chosen.length&&g.every(c=>captureSelection.includes(c.id))
+ );
+ return match||null;
+}
+
+function cardImage(c,area){
+ const im=document.createElement("img");
+ im.className="card";
+ if(area==="player"&&selected===c.id)im.classList.add("selected");
+ if(area==="table"&&captureSelection.includes(c.id))im.classList.add("capture-selected");
+
+ im.src=imageURL(c);
+ im.alt=c.file;
+ im.onerror=()=>{im.style.background="#f2dfb0";};
+
+ if(area==="player"&&turn==="player"&&!finished){
+  im.onclick=()=>{
+   selected=c.id;
+   captureSelection=[];
+   render();
+   say("Ora scegli la presa sul tavolo, se ci sono più combinazioni.");
+  };
+ }
+
+ if(area==="table"&&turn==="player"&&!finished&&selected!==null){
+  const card=hand.find(x=>x.id===selected);
+  if(card){
+   const options=possibleTakes(card);
+   const allowed=options.some(g=>g.some(x=>x.id===c.id));
+   if(allowed)im.classList.add("takeable");
+   im.onclick=()=>{
+    if(!allowed)return;
+    if(options.length===1){
+     captureSelection=options[0].map(x=>x.id);
+    }else{
+     if(captureSelection.includes(c.id)){
+      captureSelection=captureSelection.filter(id=>id!==c.id);
+     }else{
+      captureSelection.push(c.id);
+     }
+    }
+    render();
+    updateCaptureHelp(card);
+   };
+  }
+ }
+ return im;
+}
+
+function updateCaptureHelp(card){
+ const help=document.getElementById("captureHelp");
+ const options=possibleTakes(card);
+ if(!options.length){
+  help.textContent="Non c'è una presa: premi Gioca carta per calarla.";
+  return;
+ }
+ if(options.length===1){
+  help.textContent="Presa evidenziata: premi Gioca carta per confermare.";
+  return;
+ }
+ const chosen=table.filter(c=>captureSelection.includes(c.id));
+ const valid=options.some(g=>
+  g.length===chosen.length&&g.every(c=>captureSelection.includes(c.id))
+ );
+ help.textContent=valid
+  ?"Combinazione scelta: premi Gioca carta per confermare."
+  :"Ci sono più prese: tocca le carte della combinazione che vuoi prendere.";
+}
+
 function render(){
  const p=document.getElementById("player");
  const m=document.getElementById("middle");
  const o=document.getElementById("opponent");
- p.replaceChildren();
- m.replaceChildren();
- o.replaceChildren();
+ p.replaceChildren();m.replaceChildren();o.replaceChildren();
 
  hand.forEach(c=>p.appendChild(cardImage(c,"player")));
 
@@ -135,14 +220,7 @@ function render(){
  const takeable=new Set();
 
  if(chosenCard){
-  const exact=table.filter(c=>c.value===chosenCard.value);
-  if(exact.length){
-   exact.forEach(c=>takeable.add(c.id));
-  }else{
-   combos(table,chosenCard.value).forEach(group=>{
-    group.forEach(c=>takeable.add(c.id));
-   });
-  }
+  possibleTakes(chosenCard).forEach(g=>g.forEach(c=>takeable.add(c.id)));
  }
 
  table.forEach(c=>{
@@ -162,6 +240,10 @@ function render(){
 
  document.getElementById("play").disabled=
   turn!=="player"||finished||selected===null;
+ document.getElementById("play").textContent="Gioca carta / conferma presa";
+
+ if(chosenCard)updateCaptureHelp(chosenCard);
+ else document.getElementById("captureHelp").textContent="";
 }
 
 function say(t){
@@ -174,9 +256,9 @@ function celebrate(){
  void el.offsetWidth;
  el.classList.add("show");
  clearTimeout(celebrationTimer);
- celebrationTimer=setTimeout(()=>el.classList.remove("show"),1500);
+ celebrationTimer=setTimeout(()=>el.classList.remove("show"),1600);
 
- for(let i=0;i<45;i++){
+ for(let i=0;i<55;i++){
   const bit=document.createElement("div");
   bit.className="confetti";
   bit.style.left=Math.random()*100+"vw";
@@ -190,52 +272,40 @@ function celebrate(){
 function startHand(){
  deck=makeDeck();
  hand=[];cpu=[];table=[];mine=[];theirs=[];
- selected=null;lastTaker=null;finished=false;turn="player";
+ selected=null;captureSelection=[];lastTaker=null;
+ finished=false;turn="player";
  playerScopes=0;cpuScopes=0;
 
  for(let i=0;i<4;i++)table.push(deck.pop());
  deal();
- say("Nuova mano! Tocca una tua carta e premi Gioca carta.");
+ say("Nuova mano! Tocca una tua carta.");
 }
 
 function newGame(){
- playerScore=0;
- cpuScore=0;
+ playerScore=0;cpuScore=0;
  startHand();
 }
 
 function deal(){
  while(hand.length<3&&deck.length)hand.push(deck.pop());
  while(cpu.length<3&&deck.length)cpu.push(deck.pop());
- selected=null;
- turn="player";
+ selected=null;captureSelection=[];turn="player";
  render();
 }
 
 function takeCard(card,who){
- const exact=table.find(c=>c.value===card.value);
+ const options=possibleTakes(card);
  let chosen=[];
 
- if(exact){
-  chosen=[exact];
- }else{
-  const options=combos(table,card.value);
-  if(options.length){
-   if(who==="player"&&options.length>1){
-    const labels=options.map((g,i)=>
-     (i+1)+") "+g.map(c=>c.file.replace(/\.jpg$/i,"")).join(" + ")
-    ).join("\n");
-    const answer=prompt("Scegli la presa scrivendo il numero:\n"+labels,"1");
-    if(answer===null)return false;
-    const n=Number(answer);
-    if(!Number.isInteger(n)||n<1||n>options.length){
-     say("Numero non valido. Riprova.");
-     return false;
-    }
-    chosen=options[n-1];
-   }else{
-    chosen=options.find(g=>g.length===1)||options[0];
+ if(options.length){
+  if(who==="player"&&options.length>1){
+   chosen=chosenCombo(card,who);
+   if(!chosen){
+    say("Scegli la combinazione toccando le carte sul tavolo.");
+    return false;
    }
+  }else{
+   chosen=options.find(g=>g.length===1)||options[0];
   }
  }
 
@@ -249,12 +319,12 @@ function takeCard(card,who){
   const canStillPlay=deck.length>0||cardsStillToPlay>1;
 
   if(table.length===0&&canStillPlay){
-   if(who==="player")playerScopes++;
-   else cpuScopes++;
    if(who==="player"){
+    playerScopes++;
     say("SCOPA! Hai preso tutte le carte!");
     celebrate();
    }else{
+    cpuScopes++;
     say("Il computer ha fatto SCOPA!");
    }
   }else{
@@ -271,11 +341,11 @@ function playPlayer(){
  if(turn!=="player"||finished||selected===null)return;
  const card=hand.find(c=>c.id===selected);
  if(!card)return;
+
  if(!takeCard(card,"player"))return;
 
  hand=hand.filter(c=>c.id!==card.id);
- selected=null;
- render();
+ selected=null;captureSelection=[];
  turn="cpu";
  render();
  say("Tocca al computer…");
@@ -303,7 +373,7 @@ function afterTurn(){
  }else{
   turn="player";
   render();
-  say("Tocca a te: scegli una carta e premi Gioca carta.");
+  say("Tocca a te: scegli una carta.");
  }
 }
 
@@ -339,15 +409,15 @@ function handPoints(cards,opponent,scopes){
 }
 
 function finishHand(){
+ // Le carte rimaste sul tavolo vanno a chi ha effettuato l'ultima presa.
  if(lastTaker==="player")mine.push(...table);
  else if(lastTaker==="cpu")theirs.push(...table);
  table=[];
 
  const p=handPoints(mine,theirs,playerScopes);
  const c=handPoints(theirs,mine,cpuScopes);
- playerScore+=p;
- cpuScore+=c;
- finished=true;
+ playerScore+=p;cpuScore+=c;
+ finished=true;selected=null;captureSelection=[];
  render();
 
  if(playerScore>=11||cpuScore>=11){
@@ -360,6 +430,19 @@ function finishHand(){
   setTimeout(()=>{if(finished)startHand();},1800);
  }
 }
+
+document.getElementById("chatForm").addEventListener("submit",function(e){
+ e.preventDefault();
+ const input=document.getElementById("chatInput");
+ const value=input.value.trim();
+ if(!value)return;
+ const log=document.getElementById("chatLog");
+ const line=document.createElement("div");
+ line.textContent="Tu: "+value;
+ log.appendChild(line);
+ log.scrollTop=log.scrollHeight;
+ input.value="";
+});
 
 newGame();
 </script>

@@ -244,10 +244,15 @@ function takeCard(card,who){
   if(table.length===0&&canStillPlay){
    if(who==="player"){playerScopes++;celebrate();}
    else cpuScopes++;
-   say(who==="player"?"SCOPA! Hai preso tutte le carte!":"Il computer ha fatto SCOPA!");
-  }else{
-   say(who==="player"?"Hai preso le carte.":"Il computer ha preso le carte.");
-  }
+if(who==="player"){
+  playerScopes++;
+  celebrate();
+}else{
+  cpuScopes++;
+  celebrate();
+}
+say(who==="player"?"SCOPA! Hai preso tutte le carte!":"Il computer ha fatto SCOPA!");
+    
  }else{
   table.push(card);
   say(who==="player"?"Carta calata sul tavolo.":"Il computer ha calato una carta.");

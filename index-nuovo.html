@@ -1,126 +1,230 @@
+x
 
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scopa Napoletano</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;padding:16px;background:#103d2b;color:#fff0c2;
-font-family:Arial,sans-serif;text-align:center}
-h1{color:#f4d17a}
-#table,#hand{display:flex;flex-wrap:wrap;justify-content:center;
-gap:9px;margin:18px auto;min-height:100px}
-.card{width:65px;height:100px;background:#fff8e9;color:#222;
-border:2px solid #d4ae55;border-radius:7px;font-size:22px;
-font-weight:bold;display:flex;flex-direction:column;
-justify-content:space-between;padding:7px;cursor:pointer}
-.card small{font-size:12px}
-button{padding:12px 18px;border:0;border-radius:8px;
-background:#f1cb68;color:#193b2b;font-weight:bold;margin:8px}
-#status{min-height:45px;line-height:1.5}
-</style>
-</head>
-<body>
-<h1>SCOPA NAPOLETANO</h1>
-<p>Gioco di prova contro il computer</p>
-<h3 id="score">Tu 0 — Computer 0</h3>
-<h3>Tavolo</h3>
-<div id="table"></div>
-<h3>Le tue carte</h3>
-<div id="hand"></div>
-<p id="status">Premi Nuova partita per iniziare.</p>
-<button onclick="newGame()">Nuova partita</button>
-<script>
-const semi=["♦ Denari","♥ Coppe","♠ Spade","♣ Bastoni"];
-const nomi=["Asso","2","3","4","5","6","7","Fante","Cavallo","Re"];
-let mazzo=[],mano=[],tavolo=[],computer=[],prese=[],punti=0;
-let finita=true,ultimo=null;
-
-function creaMazzo(){
- mazzo=[];
- semi.forEach((seme,s)=>{
-  nomi.forEach((nome,i)=>mazzo.push({
-   nome: nome,seme:seme,valore:i<7?i+1:i+1,
-   id:s*10+i
-  }));
- });
- for(let i=mazzo.length-1;i>0;i--){
-  let j=Math.floor(Math.random()*(i+1));
-  [mazzo[i],mazzo[j]]=[mazzo[j],mazzo[i]];
- }
-}
-function valore(c){return c.valore}
-function mostra(c){
- return '<button class="card" onclick="gioca('+c.id+')">'+
- c.nome+'<small>'+c.seme+'</small></button>';
-}
-function render(){
- document.getElementById("table").innerHTML=tavolo.map(c=>
- '<div class="card">'+c.nome+'<small>'+c.seme+'</small></div>'
- ).join("");
- document.getElementById("hand").innerHTML=mano.map(c=>mostra(c)).join("");
- document.getElementById("score").textContent="Tu "+punti+
- " — Computer "+computer.length;
-}
-function newGame(){
- creaMazzo();mano=[];tavolo=[];computer=[];prese=[];punti=0;
- finita=false;ultimo=null;
- for(let i=0;i<4;i++)tavolo.push(mazzo.pop());
- distribuisci();
- document.getElementById("status").textContent="Tocca a te: scegli una carta.";
- render();
-}
-function distribuisci(){
- while(mano.length<3&&mazzo.length)mano.push(mazzo.pop());
- while(computer.length<3&&mazzo.length)computer.push(mazzo.pop());
-}
-function gioca(id){
- if(finita)return;
- let i=mano.findIndex(c=>c.id===id);
- if(i<0)return;
- let carta=mano.splice(i,1)[0];
- let presePossibili=tavolo.filter(c=>valore(c)===valore(carta));
- if(presePossibili.length){
-  tavolo=tavolo.filter(c=>c!==presePossibili[0]);
-  ultimo="tu";
-  if(tavolo.length===0)punti++;
- }else tavolo.push(carta);
- if(mano.length===0&&mazzo.length){
-  distribuisci();
- }
- if(mano.length===0&&!mazzo.length){
-  finita=true;
-  document.getElementById("status").textContent=
-  "Mano terminata. Premi Nuova partita per ricominciare.";
- }else{
-  document.getElementById("status").textContent="Turno del computer…";
-  render();
-  setTimeout(mossaComputer,600);
- }
- render();
-}
-function mossaComputer(){
- if(finita)return;
- if(!computer.length){
-  distribuisci();
-  if(!computer.length){finita=true;render();return;}
- }
- let carta=computer.pop();
- let i=tavolo.findIndex(c=>valore(c)===valore(carta));
- if(i>=0){
-  tavolo.splice(i,1);ultimo="computer";
- }else tavolo.push(carta);
- if(!mano.length&&!computer.length&&!mazzo.length){
-  finita=true;
-  document.getElementById("status").textContent="Partita terminata.";
- }else{
-  if(!mano.length&&mazzo.length)distribuisci();
-  document.getElementById("status").textContent="Tocca a te.";
- }
- render();
-}
-</script>
-</body>
-</html>
+<!DOCTYPE html>  <html lang="it">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width,initial-scale=1">  
+<title>SCOPA</title>  
+<style>  
+*{box-sizing:border-box}  
+body{margin:0;background:#10291e;color:#fff3d0;font-family:Arial,sans-serif;text-align:center}  
+header{padding:14px;background:#173d2a;border-bottom:3px solid #d3b46b}  
+h1{margin:0;color:#f4d58d;letter-spacing:5px;font-size:34px}  
+#score{margin-top:9px;font-weight:bold;font-size:17px}  
+.label{color:#f4d58d;font-weight:bold;margin:12px 0 7px}  
+.area{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;padding:5px;min-height:105px}  
+#table{margin:8px auto;padding:10px 4px;background:#205b3b;border:3px solid #c9a75d;border-radius:18px;max-width:700px;min-height:170px}  
+.card{width:clamp(48px,15vw,83px);height:auto;aspect-ratio:1324/2188;object-fit:contain;background:#fff8e6;border:1px solid #d6bd83;border-radius:6px;box-shadow:0 2px 5px #07170e;cursor:pointer}  
+.card.selected{outline:3px solid #ffe078;transform:translateY(-5px)}  
+.back{background:repeating-linear-gradient(45deg,#8b2530,#8b2530 5px,#f2d8a4 6px,#8b2530 9px);border:3px double #f2d8a4}  
+button{background:#d8b568;color:#172b1e;border:0;border-radius:9px;padding:12px 15px;margin:5px;font-weight:bold;font-size:15px}  
+button:disabled{opacity:.45}  
+#message{padding:12px;min-height:50px;line-height:1.4}  
+#actions{padding:4px}  
+small{display:block;color:#d6ceb9;padding:12px}  
+</style>  
+</head>  
+<body>  
+<header>  
+<h1>SCOPA</h1>  
+<div>Carte napoletane · Tavolo verde e oro</div>  
+<div id="score">Tu 0 — Computer 0</div>  
+</header>  <div class="label">COMPUTER</div>  
+<div id="opponent" class="area"></div>  <div id="table">  
+  <div class="label">CARTE SUL TAVOLO</div>  
+  <div id="middle" class="area"></div>  
+</div>  <div class="label">LE TUE CARTE</div>  
+<div id="player" class="area"></div>  <div id="message">Preparo le carte…</div>  
+<div id="actions">  
+<button id="play" onclick="playPlayer()" disabled>Gioca carta</button>  
+<button onclick="newGame()">Nuova partita</button>  
+</div>  
+<small>Scopa napoletana · Partita contro il computer</small>  <script>  
+const suits=["denari","coppe","spade","bastoni"];  
+const ranks=["Asso","Due","Tre","Quattro","Cinque","Sei","Sette","Otto","Nove","Dieci"];  
+const files=[  
+"01 Asso di denari.jpg","02 Due di denari.jpg",  
+"03 Tre di denari.jpg","04 Quattro di denari.jpg",  
+"05 Cinque di denari.jpg","06 Sei di denari.jpg",  
+"07 Sette di denari.jpg","08 Otto di denari.jpg",  
+"09 Nove di denari.jpg","10 Dieci di denari.jpg",  
+"11 Asso di coppe.jpg","12 Due di coppe.jpg",  
+"13 Tre di coppe.jpg","14 Quattro di coppe.jpg",  
+"15 Cinque di coppe.jpg","16 Sei di coppe.jpg",  
+"17 Sette di coppe.jpg","18 Otto di coppe.jpg",  
+"19 Nove di coppe.jpg","20 Dieci di coppe.jpg",  
+"21 Asso di spade.jpg","22 Due di spade.jpg",  
+"23 Tre di spade.jpg","24 Quattro di spade.jpg",  
+"25 Cinque di spade.jpg","26 Sei di spade.jpg",  
+"27 Sette di spade.jpg","28 Otto di spade.jpg",  
+"29 Nove di spade.jpg","30 Dieci di spade.jpg",  
+"31 Asso di bastoni.jpg","32 Due di bastoni.jpg",  
+"33 Tre di bastoni.jpg","34 Quattro di bastoni.jpg",  
+"35 Cinque di bastoni.jpg","36 Sei di bastoni.jpg",  
+"37 Sette di bastoni.jpg","38 Otto di bastoni.jpg",  
+"39 Nove di bastoni.jpg","40 Dieci di Bastoni.jpg"  
+];  
+  
+let deck=[],hand=[],cpu=[],table=[],mine=[],theirs=[];  
+let selected=null,turn="player",lastTaker=null,scopas=0;  
+let playerScore=0,cpuScore=0,finished=false;  
+  
+function makeDeck(){  
+ return files.map((file,i)=>({  
+  id:i+1,rank:i%10+1,suit:suits[Math.floor(i/10)],  
+  file:file,value:i%10+1  
+ })).sort(()=>Math.random()-.5);  
+}  
+function imageURL(c){  
+ return "https://commons.wikimedia.org/wiki/Special:FilePath/"+encodeURIComponent(c.file);  
+}  
+function cardImage(c,area){  
+ const im=document.createElement("img");  
+ im.className="card"+(area==="player"&&selected===c.id?" selected":"");  
+ im.src=imageURL(c);  
+ im.alt=c.file;  
+ im.loading="lazy";  
+ im.onerror=()=>{im.alt=c.file;im.style.background="#f2dfb0";};  
+ if(area==="player"&&turn==="player"&&!finished)  
+   im.onclick=()=>{selected=c.id;render();};  
+ return im;  
+}  
+function render(){  
+ const p=document.getElementById("player");  
+ const m=document.getElementById("middle");  
+ const o=document.getElementById("opponent");  
+ p.replaceChildren();m.replaceChildren();o.replaceChildren();  
+ hand.forEach(c=>p.appendChild(cardImage(c,"player")));  
+ table.forEach(c=>m.appendChild(cardImage(c,"table")));  
+ cpu.forEach(()=>{const b=document.createElement("div");b.className="card back";o.appendChild(b);});  
+ document.getElementById("score").textContent=  
+ "Tu "+playerScore+" — Computer "+cpuScore;  
+ document.getElementById("play").disabled=  
+ turn!=="player"||finished||selected===null;  
+}  
+function say(t){document.getElementById("message").textContent=t;}  
+function newGame(){  
+ deck=makeDeck();hand=[];cpu=[];table=[];mine=[];theirs=[];  
+ selected=null;turn="player";lastTaker=null;scopas=0;  
+ playerScore=0;cpuScore=0;finished=false;  
+ for(let i=0;i<4;i++)table.push(deck.pop());  
+ deal();  
+ say("Partita iniziata! Tocca una tua carta, poi Gioca carta.");  
+}  
+function deal(){  
+ while(hand.length<3&&deck.length)hand.push(deck.pop());  
+ while(cpu.length<3&&deck.length)cpu.push(deck.pop());  
+ selected=null;turn="player";render();  
+}  
+function combos(cards,target){  
+ const out=[];  
+ for(let mask=1;mask<(1<<cards.length);mask++){  
+  const group=cards.filter((c,i)=>mask&(1<<i));  
+  if(group.reduce((s,c)=>s+c.value,0)===target)out.push(group);  
+ }  
+ return out;  
+}  
+function takeCard(card,who){  
+ const options=combos(table,card.value);  
+ let chosen=[];  
+ if(options.length){  
+  if(who==="player"){  
+   if(options.length===1)chosen=options[0];  
+   else{  
+    const labels=options.map((g,i)=>  
+     (i+1)+") "+g.map(c=>c.file.replace(/\\.jpg$/i,"")).join(" + ")  
+    ).join("\n");  
+    const answer=prompt("Scegli la presa scrivendo il numero:\n"+labels,"1");  
+    if(answer===null)return false;  
+    const n=Number(answer);  
+    if(!Number.isInteger(n)||n<1||n>options.length){  
+     say("Numero non valido. Riprova.");return false;  
+    }  
+    chosen=options[n-1];  
+   }  
+  }else{  
+   chosen=options.find(g=>g.length===1)||options[0];  
+  }  
+ }  
+ if(chosen.length){  
+  const captured=who==="player"?mine:theirs;  
+  captured.push(card,...chosen);  
+  table=table.filter(c=>!chosen.some(x=>x.id===c.id));  
+  lastTaker=who;  
+  if(table.length===0 && deck.length>0 &&  
+     (hand.length>0||cpu.length>0)) scopas++;  
+  if(who==="player")say(table.length===0?"SCOPA! Hai preso tutte le carte!":"Hai preso le carte.");  
+  else say(table.length===0?"Il computer ha fatto SCOPA!":"Il computer ha preso delle carte.");  
+ }else{  
+  table.push(card);lastTaker=null;  
+  if(who==="player")say("Carta calata sul tavolo.");  
+  else say("Il computer ha calato una carta.");  
+ }  
+ return true;  
+}  
+function playPlayer(){  
+ if(turn!=="player"||finished||selected===null)return;  
+ const card=hand.find(c=>c.id===selected);  
+ if(!card)return;  
+ if(!takeCard(card,"player"))return;  
+ hand=hand.filter(c=>c.id!==card.id);  
+ selected=null;render();  
+ if(checkEnd())return;  
+ turn="cpu";render();  
+ say("Tocca al computer…");  
+ setTimeout(cpuMove,600);  
+}  
+function cpuMove(){  
+ if(finished)return;  
+ if(!cpu.length){afterTurn();return;}  
+ const card=cpu[0];  
+ takeCard(card,"cpu");  
+ cpu=cpu.slice(1);render();  
+ if(checkEnd())return;  
+ afterTurn();  
+}  
+function afterTurn(){  
+ if(!hand.length&&!cpu.length){  
+  if(deck.length){deal();say("Nuove carte distribuite. Tocca a te.");}  
+  else finishHand();  
+ }else{  
+  turn="player";render();  
+  say("Tocca a te: scegli una carta e premi Gioca carta.");  
+ }  
+}  
+function checkEnd(){  
+ if(hand.length===0&&cpu.length===0&&deck.length===0){  
+  finishHand();return true;  
+ }  
+ return false;  
+}  
+function finishHand(){  
+ if(lastTaker==="player")mine.push(...table);  
+ else if(lastTaker==="cpu")theirs.push(...table);  
+ else if(table.length)mine.push(...table);  
+ table=[];finished=true;  
+ const p=points(mine),c=points(theirs);  
+ playerScore+=p;cpuScore+=c;  
+ render();  
+ if(playerScore>=11||cpuScore>=11){  
+  say(playerScore===cpuScore?  
+   "Parità! Premi Nuova partita per giocare ancora.":  
+   playerScore>cpuScore?"Hai vinto la partita! Premi Nuova partita per giocare ancora.":  
+   "Il computer ha vinto. Premi Nuova partita per riprovare.");  
+ }else{  
+  say("Mano terminata. Tu: "+p+" punti; computer: "+c+  
+  ". Premi Nuova partita per iniziare una nuova partita.");  
+ }  
+}  
+function points(cards){  
+ let score=0;  
+ const denari=cards.filter(c=>c.suit==="denari").length;  
+ if(cards.length>theirs.length)score++;  
+ if(denari> (cards===mine?theirs:mine).filter(c=>c.suit==="denari").length)score++;  
+ if(cards.some(c=>c.id===7))score++;  
+ score+=scopas;  
+ return score;  
+}  
+newGame();  
+</script>  </body>  
+</html>  
